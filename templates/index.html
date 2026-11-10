@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Land Information System (LIS) | Cadastral Portal</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Proj4js for Coordinate Reprojection (EPSG:32631 UTM Zone 31N -> EPSG:4326 WGS84) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            background-color: #0f172a;
+            color: #1e293b;
+        }
+
+        /* Fullscreen Map */
+        #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Floating Top Bar */
+        .floating-topbar {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            pointer-events: none;
+            gap: 12px;
+        }
+
+        .header-brand {
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 10px 18px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.12), 0 2px 6px -1px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+        }
+
+        .brand-text h1 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .brand-text p {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Search Container */
+        .search-container {
+            pointer-events: auto;
+            position: relative;
+            width: 420px;
+            max-width: 100%;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 4px 6px 4px 14px;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.14), 0 2px 6px -1px rgba(0, 0, 0, 0.08);
+            border: 1.5px solid rgba(255, 255, 255, 0.9);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .search-box:focus-within {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 24px -2px rgba(37, 99, 235, 0.25), 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 13.5px;
+            font-family: inherit;
+            color: #1e293b;
+            background: transparent;
+            padding: 8px 4px;
+        }
+
+        .search-input::placeholder {
+            color: #94a3b8;
+        }
+
+        .search-clear-btn {
+            background: none;
+            border: none;
+            outline: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 16px;
+            line-height: 1;
+            border-radius: 50%;
+            display: none;
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+
+        .search-clear-btn:hover {
+            color: #1e293b;
+            background: #e2e8f0;
+        }
+
+        .search-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            outline: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+        }
+
+        .search-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .search-btn:active {
+            transform: scale(0.97);
+        }
+
+        .search-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Shake animation for not-found error */
+        @keyframes shakeBox {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .search-box.shake {
+            animation: shakeBox 0.4s ease-in-out;
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+        }
+
+        /* Status & Stats Badge */
+        .stats-badge {
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+        }
+
+        /* Floating Info / Legend Card */
+        .map-legend {
+            position: absolute;
+            bottom: 24px;
+            right: 16px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(10px);
+            padding: 14px 18px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            min-width: 200px;
+        }
+
+        .map-legend h4 {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 7px;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-color-box {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1.8px solid #1e3a8a;
+            background-color: rgba(37, 99, 235, 0.40);
+        }
+
+        .legend-color-box.highlight {
+            border-color: #c2410c;
+            background-color: rgba(249, 115, 22, 0.65);
+        }
+
+        /* Popup Custom Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.18), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .leaflet-popup-content {
+            margin: 0;
+            line-height: 1.4;
+            max-width: 360px;
+            font-size: 12.5px;
+        }
+
+        .popup-header {
+            background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .popup-title {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .popup-badge {
+            background: rgba(255, 255, 255, 0.22);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        .popup-body {
+            padding: 12px 16px;
+            max-height: 280px;
+            overflow-y: auto;
+            background: #ffffff;
+        }
+
+        .popup-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .popup-table tr {
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .popup-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .popup-table td {
+            padding: 6px 4px;
+            vertical-align: top;
+        }
+
+        .popup-table td.prop-key {
+            color: #64748b;
+            font-weight: 500;
+            width: 42%;
+            white-space: nowrap;
+        }
+
+        .popup-table td.prop-val {
+            color: #0f172a;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        /* Loading Indicator */
+        #loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 18px 26px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 13.5px;
+            font-weight: 500;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .spinner {
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #38bdf8;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: absolute;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(6px);
+            color: white;
+            padding: 11px 22px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            pointer-events: none;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast.show {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Reposition Leaflet Controls */
+        .leaflet-top.leaflet-left {
+            top: 86px;
+            left: 16px;
+        }
+
+        .leaflet-bar {
+            border-radius: 10px !important;
+            overflow: hidden;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12) !important;
+            border: 1px solid rgba(0,0,0,0.06) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Top Header & Search Bar -->
+    <div class="floating-topbar">
+        <div class="header-brand">
+            <div class="brand-icon">LIS</div>
+            <div class="brand-text">
+                <h1>Land Information System</h1>
+                <p>Abeokuta Cadastre &middot; Ogun State</p>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <div class="search-box" id="searchBox">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="Search Parcel ID (e.g. AB-001)..." 
+                    list="parcelDatalist"
+                    autocomplete="off" 
+                />
+                <datalist id="parcelDatalist"></datalist>
+                <button type="button" id="clearSearchBtn" class="search-clear-btn" title="Clear search and reset extent">&times;</button>
+                <button type="button" id="searchBtn" class="search-btn">
+                    <svg id="searchIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span id="searchBtnText">Search</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-badge" id="statsBadge">
+            <span class="status-dot"></span>
+            <span id="parcelCountLabel">Loading parcels...</span>
+        </div>
+    </div>
+
+    <!-- Map Legend -->
+    <div class="map-legend">
+        <h4>Cadastral Legend</h4>
+        <div class="legend-item">
+            <div class="legend-color-box"></div>
+            <span>Cadastral Parcel</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color-box highlight"></div>
+            <span>Selected / Searched Parcel</span>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <span>Loading spatial cadastre data...</span>
+    </div>
+
+    <!-- Toast Notification for Search / Feedback -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // Coordinate Transformation: EPSG:32631 (UTM Zone 31N) -> EPSG:4326 (WGS84)
+        if (typeof proj4 !== 'undefined') {
+            proj4.defs("EPSG:32631", "+proj=utm +zone=31 +datum=WGS84 +units=m +no_defs");
+        }
+
+        /**
+         * Fallback mathematical conversion for UTM Zone 31N to WGS84 Lat/Lon
+         */
+        function utm31NToLatLon(easting, northing) {
+            const a = 6378137.0;
+            const f = 1 / 298.257223563;
+            const k0 = 0.9996;
+            const e = Math.sqrt(2 * f - f * f);
+            const e1 = (1 - Math.sqrt(1 - e * e)) / (1 + Math.sqrt(1 - e * e));
+            const x = easting - 500000.0;
+            const y = northing;
+            const m = y / k0;
+            const mu = m / (a * (1 - (e * e) / 4 - (3 * Math.pow(e, 4)) / 64 - (5 * Math.pow(e, 6)) / 256));
+            const phi1 = mu + (3 * e1 / 2 - 27 * Math.pow(e1, 3) / 32) * Math.sin(2 * mu)
+                            + (21 * Math.pow(e1, 2) / 16 - 55 * Math.pow(e1, 4) / 32) * Math.sin(4 * mu);
+            const n1 = a / Math.sqrt(1 - Math.pow(e * Math.sin(phi1), 2));
+            const t1 = Math.pow(Math.tan(phi1), 2);
+            const c1 = (Math.pow(e, 2) / (1 - Math.pow(e, 2))) * Math.pow(Math.cos(phi1), 2);
+            const r1 = a * (1 - Math.pow(e, 2)) / Math.pow(1 - Math.pow(e * Math.sin(phi1), 2), 1.5);
+            const d = x / (n1 * k0);
+            const lat = phi1 - (n1 * Math.tan(phi1) / r1) * (Math.pow(d, 2) / 2 - (5 + 3 * t1 + 10 * c1 - 4 * Math.pow(c1, 2) - 9 * (Math.pow(e, 2) / (1 - Math.pow(e, 2)))) * Math.pow(d, 4) / 24);
+            const lon = (d - (1 + 2 * t1 + c1) * Math.pow(d, 3) / 6) / Math.cos(phi1);
+            const lonDeg = (31 - 1) * 6 - 180 + 3 + (lon * 180 / Math.PI);
+            return [lonDeg, lat * 180 / Math.PI]; // [longitude, latitude]
+        }
+
+        /**
+         * Recursively transforms coordinates from UTM 31N to WGS84 [lng, lat]
+         */
+        function reprojectCoordinates(coords) {
+            if (typeof coords[0] === 'number') {
+                if (typeof proj4 !== 'undefined') {
+                    try {
+                        const pt = proj4("EPSG:32631", "EPSG:4326", [coords[0], coords[1]]);
+                        return [pt[0], pt[1]];
+                    } catch (e) {
+                        return utm31NToLatLon(coords[0], coords[1]);
+                    }
+                } else {
+                    return utm31NToLatLon(coords[0], coords[1]);
+                }
+            }
+            return coords.map(reprojectCoordinates);
+        }
+
+        function reprojectFeatureCollection(geojson) {
+            const transformed = JSON.parse(JSON.stringify(geojson));
+            if (transformed.features) {
+                transformed.features.forEach(f => {
+                    if (f.geometry && f.geometry.coordinates) {
+                        f.geometry.coordinates = reprojectCoordinates(f.geometry.coordinates);
+                    }
+                });
+            }
+            return transformed;
+        }
+
+        // Initialize Leaflet Map centered near Abeokuta, Nigeria
+        const map = L.map('map', {
+            zoomControl: true,
+            attributionControl: true
+        }).setView([7.148, 3.358], 15);
+
+        // OpenStreetMap Base Tile Layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Land Information System'
+        }).addTo(map);
+
+        // Styling definitions
+        const defaultStyle = {
+            color: '#1e3a8a',          // Dark blue border
+            weight: 1.8,               // Border width
+            opacity: 0.95,
+            fillColor: '#3b82f6',      // Semi-transparent blue fill
+            fillOpacity: 0.40,
+            smoothFactor: 0.5
+        };
+
+        const hoverStyle = {
+            color: '#0f172a',          // Dark slate border
+            weight: 2.8,
+            opacity: 1.0,
+            fillColor: '#60a5fa',      // Bright blue fill
+            fillOpacity: 0.65
+        };
+
+        const selectedStyle = {
+            color: '#c2410c',          // Vivid amber/orange border
+            weight: 3.5,
+            opacity: 1.0,
+            fillColor: '#f97316',      // Bright orange fill
+            fillOpacity: 0.65
+        };
+
+        let geojsonLayer = null;
+        let selectedLayer = null;
+        const parcelLayerMap = new Map(); // Lowercase Parcel_ID -> Leaflet Layer reference
+
+        /**
+         * Formats attribute key into human-readable label
+         */
+        function formatKey(key) {
+            const labels = {
+                'Parcel_ID': 'Parcel ID',
+                'Par_Owner': 'Registered Owner',
+                'landuse': 'Land Use',
+                'Area': 'Area (sq.m)',
+                'Status': 'Status',
+                'Location': 'Location',
+                'LGA': 'LGA',
+                'State': 'State',
+                'Country': 'Country',
+                'Title_numb': 'Title Number',
+                'Surv_plan': 'Survey Plan',
+                'Rec_date': 'Record Date',
+                'Shape_Length': 'Perimeter (m)',
+                'Shape_Area': 'Calculated Area (sq.m)'
+            };
+            return labels[key] || key.replace(/_/g, ' ');
+        }
+
+        /**
+         * Formats attribute value for clean presentation
+         */
+        function formatVal(key, val) {
+            if (val === null || val === undefined || val === '') {
+                return '<span style="color:#94a3b8; font-style:italic;">N/A</span>';
+            }
+            if (key === 'Area' || key === 'Shape_Area' || key === 'Shape_Length') {
+                const num = parseFloat(val);
+                if (!isNaN(num)) {
+                    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            }
+            if (key === 'Rec_date' && typeof val === 'string' && val.includes('T')) {
+                return val.split('T')[0];
+            }
+            return String(val);
+        }
+
+        /**
+         * Builds an interactive popup containing all available properties in a formatted table
+         */
+        function buildPopupContent(feature) {
+            const props = feature.properties || {};
+            const parcelId = props.Parcel_ID || 'Parcel Details';
+            const landUse = props.landuse || 'Cadastre';
+
+            let tableRows = '';
+            for (const [key, value] of Object.entries(props)) {
+                tableRows += `
+                    <tr>
+                        <td class="prop-key">${formatKey(key)}</td>
+                        <td class="prop-val">${formatVal(key, value)}</td>
+                    </tr>
+                `;
+            }
+
+            return `
+                <div class="popup-header">
+                    <span class="popup-title">${parcelId}</span>
+                    <span class="popup-badge">${landUse}</span>
+                </div>
+                <div class="popup-body">
+                    <table class="popup-table">
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        /**
+         * Sets active parcel highlighting
+         */
+        function highlightFeature(layer) {
+            if (selectedLayer && selectedLayer !== layer) {
+                geojsonLayer.resetStyle(selectedLayer);
+            }
+            selectedLayer = layer;
+            selectedLayer.setStyle(selectedStyle);
+            selectedLayer.bringToFront();
+        }
+
+        /**
+         * Resets highlight back to default
+         */
+        function unhighlightFeature() {
+            if (selectedLayer && geojsonLayer) {
+                geojsonLayer.resetStyle(selectedLayer);
+                selectedLayer = null;
+            }
+        }
+
+        /**
+         * Fetches parcel data from backend and initializes the GeoJSON layer
+         */
+        function loadParcels() {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'flex';
+
+            fetch('/api/parcels')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server returned HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(rawGeojson => {
+                    // Reproject UTM coordinates to WGS84
+                    const wgs84Geojson = reprojectFeatureCollection(rawGeojson);
+                    const datalist = document.getElementById('parcelDatalist');
+                    datalist.innerHTML = '';
+
+                    // Create Leaflet GeoJSON layer
+                    geojsonLayer = L.geoJSON(wgs84Geojson, {
+                        style: defaultStyle,
+                        onEachFeature: function(feature, layer) {
+                            const pid = feature.properties && feature.properties.Parcel_ID;
+                            if (pid) {
+                                const cleanPid = pid.trim();
+                                parcelLayerMap.set(cleanPid.toLowerCase(), layer);
+
+                                // Populate search datalist autocomplete
+                                const opt = document.createElement('option');
+                                opt.value = cleanPid;
+                                const owner = feature.properties.Par_Owner || '';
+                                opt.textContent = owner ? `${cleanPid} (${owner})` : cleanPid;
+                                datalist.appendChild(opt);
+                            }
+
+                            // Dynamic Popup binding
+                            layer.bindPopup(buildPopupContent(feature), {
+                                maxWidth: 360,
+                                className: 'custom-parcel-popup'
+                            });
+
+                            // Hover interactions
+                            layer.on({
+                                mouseover: function(e) {
+                                    if (layer !== selectedLayer) {
+                                        layer.setStyle(hoverStyle);
+                                        layer.bringToFront();
+                                    }
+                                },
+                                mouseout: function(e) {
+                                    if (layer !== selectedLayer) {
+                                        geojsonLayer.resetStyle(layer);
+                                    }
+                                },
+                                click: function(e) {
+                                    highlightFeature(layer);
+                                }
+                            });
+                        }
+                    }).addTo(map);
+
+                    // Automatically adjust map zoom and bounds to fit all parcels
+                    const bounds = geojsonLayer.getBounds();
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+                    }
+
+                    // Update UI stats
+                    const count = (wgs84Geojson.features || []).length;
+                    document.getElementById('parcelCountLabel').textContent = `${count} Parcels Loaded`;
+                    loader.style.display = 'none';
+                })
+                .catch(err => {
+                    console.error('Error loading parcel data:', err);
+                    loader.style.display = 'none';
+                    showToast('Failed to load parcel data: ' + err.message);
+                });
+        }
+
+        /**
+         * Search Handler: Queries /api/parcels/search/<parcel_id>, zooms & highlights match
+         */
+        function performSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const searchBox = document.getElementById('searchBox');
+            const searchBtn = document.getElementById('searchBtn');
+            const searchBtnText = document.getElementById('searchBtnText');
+            const query = searchInput.value.trim();
+
+            if (!query) {
+                showToast('Please enter a Parcel ID to search.');
+                searchInput.focus();
+                return;
+            }
+
+            // Set loading state
+            searchBtn.disabled = true;
+            searchBtnText.textContent = 'Searching...';
+
+            fetch(`/api/parcels/search/${encodeURIComponent(query)}`)
+                .then(async response => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.message || `Parcel '${query}' not found.`);
+                    }
+                    return data;
+                })
+                .then(data => {
+                    if (!data.features || data.features.length === 0) {
+                        throw new Error(`Parcel '${query}' not found.`);
+                    }
+
+                    const matchedFeature = data.features[0];
+                    const matchedId = (matchedFeature.properties && matchedFeature.properties.Parcel_ID || query).trim();
+                    const targetLayer = parcelLayerMap.get(matchedId.toLowerCase());
+
+                    if (targetLayer) {
+                        // Highlight matched layer
+                        highlightFeature(targetLayer);
+
+                        // Smoothly fly to parcel extent
+                        const bounds = targetLayer.getBounds();
+                        map.flyToBounds(bounds, {
+                            padding: [100, 100],
+                            maxZoom: 19,
+                            duration: 1.2
+                        });
+
+                        // Automatically open popup once camera arrives
+                        setTimeout(() => {
+                            targetLayer.openPopup();
+                        }, 700);
+
+                        const owner = matchedFeature.properties.Par_Owner ? ` (${matchedFeature.properties.Par_Owner})` : '';
+                        showToast(`Found Parcel ${matchedId}${owner}`);
+                    } else {
+                        showToast(`Parcel ${matchedId} found, but spatial geometry could not be linked.`);
+                    }
+                })
+                .catch(err => {
+                    // Shake effect on error
+                    searchBox.classList.add('shake');
+                    setTimeout(() => searchBox.classList.remove('shake'), 450);
+                    showToast(err.message);
+                })
+                .finally(() => {
+                    searchBtn.disabled = false;
+                    searchBtnText.textContent = 'Search';
+                });
+        }
+
+        /**
+         * Clears search and resets view to full extent
+         */
+        function resetSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+
+            searchInput.value = '';
+            clearBtn.style.display = 'none';
+            unhighlightFeature();
+            map.closePopup();
+
+            if (geojsonLayer && geojsonLayer.getBounds().isValid()) {
+                map.flyToBounds(geojsonLayer.getBounds(), {
+                    padding: [50, 50],
+                    duration: 1.0
+                });
+                showToast('Search cleared. Extent reset to all parcels.');
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // Search Event Listeners
+        document.getElementById('searchBtn').addEventListener('click', performSearch);
+
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performSearch();
+            }
+        });
+
+        searchInput.addEventListener('input', function() {
+            clearSearchBtn.style.display = this.value.trim().length > 0 ? 'block' : 'none';
+        });
+
+        clearSearchBtn.addEventListener('click', resetSearch);
+
+        // Load parcels on page load
+        window.addEventListener('DOMContentLoaded', loadParcels);
+    </script>
+</body>
+</html>
