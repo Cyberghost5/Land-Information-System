@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Resend Activation Link | Ogun Land Administration System{% endblock %}
+
+{% block extra_head %}
+<style>
+    .auth-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        flex: 1;
+    }
+
+    .auth-card {
+        background: var(--white);
+        border: 1px solid var(--slate-200);
+        border-radius: var(--radius-xl);
+        padding: 40px;
+        max-width: 440px;
+        width: 100%;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .auth-header {
+        margin-bottom: 24px;
+        text-align: center;
+    }
+
+    .auth-header h2 {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--slate-900);
+        margin-bottom: 6px;
+    }
+
+    .auth-header p {
+        font-size: 13.5px;
+        color: var(--slate-500);
+        line-height: 1.5;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--slate-700);
+        margin-bottom: 6px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1.5px solid var(--slate-200);
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        font-family: inherit;
+        color: var(--slate-900);
+        transition: all 0.15s ease;
+        background: var(--slate-50);
+    }
+
+    .form-control:focus {
+        outline: none;
+        background: var(--white);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .btn-block {
+        width: 100%;
+        padding: 13px;
+        font-size: 14.5px;
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 24px;
+        padding-top: 18px;
+        border-top: 1px solid var(--slate-200);
+        font-size: 13.5px;
+        color: var(--slate-600);
+    }
+
+    .auth-footer a {
+        color: var(--primary);
+        font-weight: 600;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2>Resend Activation Link</h2>
+            <p>Enter your registered email address and we will dispatch a fresh verification link.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('resend_verification') }}">
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="name@example.com" required autofocus>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+                Send New Verification Email &rarr;
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Remembered your credentials? <a href="{{ url_for('login') }}">Back to Sign In</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

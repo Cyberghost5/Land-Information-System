@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ogun Land Administration System (OLAS){% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-hover: #1d4ed8;
+            --primary-dark: #1e3a8a;
+            --secondary: #059669;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --white: #ffffff;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--slate-50);
+            color: var(--slate-800);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+        }
+
+        /* Impersonation Alert Banner */
+        .impersonation-bar {
+            background: linear-gradient(90deg, #991b1b 0%, #dc2626 100%);
+            color: var(--white);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13.5px;
+            font-weight: 600;
+            z-index: 10000;
+            box-shadow: var(--shadow-md);
+        }
+
+        .impersonation-bar button {
+            background: var(--white);
+            color: #991b1b;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .impersonation-bar button:hover {
+            background: #fef2f2;
+            transform: translateY(-1px);
+        }
+
+        /* Global Header / Navbar */
+        .navbar {
+            background: var(--white);
+            border-bottom: 1px solid var(--slate-200);
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .nav-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 70px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--slate-900);
+        }
+
+        .brand-crest {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.25);
+            letter-spacing: 0.5px;
+        }
+
+        .brand-meta h2 {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--slate-900);
+            line-height: 1.2;
+        }
+
+        .brand-meta span {
+            font-size: 11px;
+            color: var(--slate-500);
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            list-style: none;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--slate-600);
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            transition: color 0.15s ease, background 0.15s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+            background: var(--slate-100);
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+            background: #eff6ff;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: var(--radius-md);
+            font-size: 13.5px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+            outline: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--white);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: #eff6ff;
+        }
+
+        .btn-secondary {
+            background: var(--slate-100);
+            color: var(--slate-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--slate-200);
+            color: var(--slate-900);
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 12px 4px 6px;
+            background: var(--slate-100);
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--slate-700);
+            border: 1px solid var(--slate-200);
+        }
+
+        .user-avatar {
+            width: 30px;
+            height: 30px;
+            background: var(--primary);
+            color: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .badge-role {
+            font-size: 10.5px;
+            padding: 2px 7px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+        }
+
+        .badge-admin {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .badge-user {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        /* Flash Message Alerts */
+        .flash-container {
+            max-width: 1000px;
+            margin: 18px auto 0;
+            padding: 0 20px;
+            width: 100%;
+        }
+
+        .alert {
+            padding: 12px 18px;
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+            font-size: 13.5px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .alert-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .alert-danger { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .alert-warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+        .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+
+        /* Main Content Container */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--white);
+            border-top: 1px solid var(--slate-200);
+            padding: 30px 24px;
+            margin-top: auto;
+        }
+
+        .footer-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--slate-500);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: var(--slate-500);
+            text-decoration: none;
+            transition: color 0.15s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .nav-container { padding: 0 16px; }
+            .brand-meta span { display: none; }
+            .footer-container { flex-direction: column; text-align: center; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Impersonation Active Banner -->
+    {% if is_impersonating %}
+    <div class="impersonation-bar">
+        <span>⚠️ Administrator Impersonation Active: You are browsing as <strong>{{ current_user.full_name }}</strong> ({{ current_user.email }})</span>
+        <form action="{{ url_for('stop_impersonating') }}" method="POST" style="margin: 0;">
+            <button type="submit">Return to Admin Console &rarr;</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="nav-brand">
+                <div class="brand-crest">OLAS</div>
+                <div class="brand-meta">
+                    <h2>Ogun Land Administration</h2>
+                    <span>Bureau of Lands & Survey &middot; Ogun State</span>
+                </div>
+            </a>
+
+            <nav>
+                <ul class="nav-links">
+                    {% if current_user %}
+                        {% if current_user.is_admin() and not is_impersonating %}
+                            <li><a href="{{ url_for('admin_dashboard') }}" class="nav-link">Admin Console</a></li>
+                        {% endif %}
+                        <li><a href="{{ url_for('user_map') }}" class="nav-link">Cadastral Map</a></li>
+                        <li><a href="{{ url_for('saved_parcels') }}" class="nav-link">Saved Parcels</a></li>
+                        <li>
+                            <div class="user-pill">
+                                <div class="user-avatar">{{ current_user.full_name[:1] | upper }}</div>
+                                <span>{{ current_user.full_name.split()[0] }}</span>
+                                <span class="badge-role {% if current_user.is_admin() %}badge-admin{% else %}badge-user{% endif %}">
+                                    {{ current_user.role }}
+                                </span>
+                            </div>
+                        </li>
+                        <li><a href="{{ url_for('logout') }}" class="btn btn-secondary">Log Out</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('index') }}" class="nav-link">Home</a></li>
+                        <li><a href="{{ url_for('login') }}" class="btn btn-outline">Log In</a></li>
+                        <li><a href="{{ url_for('register') }}" class="btn btn-primary">Sign Up</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Flash Notifications -->
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <span>{{ message }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Page Body -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div>
+                <strong>Ogun Land Administration System (OLAS)</strong> &middot; Bureau of Lands & Survey, Oke-Mosan, Abeokuta.
+            </div>
+            <ul class="footer-links">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('login') }}">Cadastral Portal</a></li>
+                <li><a href="{{ url_for('register') }}">Create Account</a></li>
+            </ul>
+        </div>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

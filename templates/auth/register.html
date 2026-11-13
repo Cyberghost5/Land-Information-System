@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account | Ogun Land Administration System{% endblock %}
+
+{% block extra_head %}
+<style>
+    .auth-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 50px 20px;
+        flex: 1;
+    }
+
+    .auth-card {
+        background: var(--white);
+        border: 1px solid var(--slate-200);
+        border-radius: var(--radius-xl);
+        padding: 40px;
+        max-width: 520px;
+        width: 100%;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .auth-header {
+        margin-bottom: 28px;
+        text-align: center;
+    }
+
+    .auth-header h2 {
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: var(--slate-900);
+        margin-bottom: 6px;
+    }
+
+    .auth-header p {
+        font-size: 13.5px;
+        color: var(--slate-500);
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--slate-700);
+        margin-bottom: 6px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1.5px solid var(--slate-200);
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        font-family: inherit;
+        color: var(--slate-900);
+        transition: all 0.15s ease;
+        background: var(--slate-50);
+    }
+
+    .form-control:focus {
+        outline: none;
+        background: var(--white);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 70px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .btn-block {
+        width: 100%;
+        padding: 13px;
+        font-size: 14.5px;
+        margin-top: 10px;
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--slate-200);
+        font-size: 13.5px;
+        color: var(--slate-600);
+    }
+
+    .auth-footer a {
+        color: var(--primary);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2>Citizen & User Registration</h2>
+            <p>Register to inspect and manage official Ogun State cadastral parcels</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('register') }}">
+            <div class="form-group">
+                <label class="form-label">Full Name *</label>
+                <input type="text" name="full_name" class="form-control" placeholder="e.g. Adebisi Covenant" required value="{{ form.full_name if form else '' }}">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Email Address *</label>
+                    <input type="email" name="email" class="form-control" placeholder="name@example.com" required value="{{ form.email if form else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Phone Number *</label>
+                    <input type="tel" name="phone" class="form-control" placeholder="+234 800 000 0000" required value="{{ form.phone if form else '' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Residential / Office Address *</label>
+                <textarea name="address" class="form-control" placeholder="Street Address, City, State" required>{{ form.address if form else '' }}</textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" name="password" class="form-control" placeholder="Min. 6 characters" minlength="6" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confirm Password *</label>
+                    <input type="password" name="confirm_password" class="form-control" placeholder="Re-enter password" minlength="6" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+                Complete Registration &rarr;
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Already have an account? <a href="{{ url_for('login') }}">Sign in here</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
